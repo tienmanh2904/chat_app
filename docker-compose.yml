@@ -1,0 +1,81 @@
+services:
+  cassandra-1:
+    image: cassandra:4.1
+    container_name: cassandra-1
+    hostname: cassandra-1
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra-1-data:/var/lib/cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=ChatAppCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+    networks:
+      - cassandra-net
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
+  cassandra-2:
+    image: cassandra:4.1
+    container_name: cassandra-2
+    hostname: cassandra-2
+    volumes:
+      - cassandra-2-data:/var/lib/cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=ChatAppCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_SEEDS=cassandra-1
+    networks:
+      - cassandra-net
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep -q '^U[NJ]' && cqlsh -e 'SELECT now() FROM system.local' > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  cassandra-3:
+    image: cassandra:4.1
+    container_name: cassandra-3
+    hostname: cassandra-3
+    volumes:
+      - cassandra-3-data:/var/lib/cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=ChatAppCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_SEEDS=cassandra-1
+    networks:
+      - cassandra-net
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+      cassandra-2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status | grep -q '^U[NJ]' && cqlsh -e 'SELECT now() FROM system.local' > /dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+networks:
+  cassandra-net:
+    driver: bridge
+
+volumes:
+  cassandra-1-data:
+  cassandra-2-data:
+  cassandra-3-data:
