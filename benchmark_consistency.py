@@ -22,6 +22,13 @@ KEYSPACE = 'realtime_chat_app'
 NUM_OPERATIONS = 5000
 NUM_THREADS = 50
 
+# Mapping consistency level values to names
+CL_NAMES = {
+    ConsistencyLevel.ONE: 'ONE',
+    ConsistencyLevel.QUORUM: 'QUORUM',
+    ConsistencyLevel.ALL: 'ALL'
+}
+
 def connect_to_cassandra():
     """Kết nối đến Cassandra"""
     cluster = Cluster(CONTACT_POINTS, port=PORT)
@@ -77,7 +84,7 @@ async def worker_write_cl(session, conversation_ids, user_ids, consistency_level
 async def benchmark_consistency_level(session, conversation_ids, user_ids, 
                                      consistency_level, num_ops):
     """Benchmark với 1 consistency level"""
-    cl_name = consistency_level.name
+    cl_name = CL_NAMES.get(consistency_level, str(consistency_level))
     print(f"\n{'='*60}")
     print(f"🔍 Testing Consistency Level: {cl_name}")
     print(f"{'='*60}")

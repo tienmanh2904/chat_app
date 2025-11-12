@@ -1,0 +1,9 @@
+=== STDOUT ===
+
+
+=== STDERR ===
+Traceback (most recent call last):
+  File "/home/tienmanh/Master/251/database/assignment/code/benchmark_consistency.py", line 13, in <module>
+    import matplotlib.pyplot as plt
+ModuleNotFoundError: No module named 'matplotlib'
+

@@ -1,0 +1,34 @@
+=== STDOUT ===
+
+============================================================
+🚀 CONSISTENCY LEVEL BENCHMARK
+============================================================
+✅ Kết nối thành công đến realtime_chat_app
+📋 Lấy mẫu: 100 users, 100 conversations
+
+
+=== STDERR ===
+Traceback (most recent call last):
+  File "/home/tienmanh/Master/251/database/assignment/code/benchmark_consistency.py", line 302, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/home/tienmanh/Master/251/database/assignment/code/benchmark_consistency.py", line 268, in main
+    result_one = await benchmark_consistency_level(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    )
+    ^
+  File "/home/tienmanh/Master/251/database/assignment/code/benchmark_consistency.py", line 80, in benchmark_consistency_level
+    cl_name = consistency_level.name
+              ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'name'
+
