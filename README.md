@@ -10,6 +10,7 @@ A comprehensive benchmark suite for testing Apache Cassandra's performance in a 
 - [Quick Start](#quick-start)
 - [Project Structure](#project-structure)
 - [Benchmark Tools](#benchmark-tools)
+- [Advanced Benchmarks](#advanced-benchmarks)
 - [Results](#results)
 - [Configuration](#configuration)
 - [Troubleshooting](#troubleshooting)
@@ -117,22 +118,59 @@ python3 data_check.py
 
 ### 4. Run Benchmarks
 
-#### Option A: Python Asyncio Benchmark
+#### Quick Start: Run All Benchmarks
 
+```bash
+# Run all benchmarks automatically (takes 30-60 minutes)
+python3 benchmark_runner.py
+```
+
+**This will:**
+- ✅ Run all 4 benchmark scenarios
+- ✅ Generate charts/graphs for each
+- ✅ Create summary report
+- ✅ Save all results to timestamped folder
+
+**Output structure:**
+```
+benchmark_results_20250112_143000/
+├── SUMMARY_REPORT.md
+├── basic_benchmark.log
+├── consistency_level_test.log
+├── fault_tolerance_test.log
+├── extreme_load_test.log
+├── consistency_level_comparison.png
+├── fault_tolerance_benchmark.png
+└── extreme_load_benchmark.png
+```
+
+---
+
+#### Option A: Individual Benchmarks
+
+**Basic Benchmark:**
 ```bash
 python3 benchmark.py
 ```
 
-**Output:**
-```
-📊 KẾT QUẢ:
-   - Throughput: 1324 ops/s
-   - Latency p50: 23.13ms
-   - Latency p95: 40.20ms
-   - Latency p99: 51.40ms
+**Consistency Level Comparison:**
+```bash
+python3 benchmark_consistency.py
 ```
 
-#### Option B: Locust Load Testing (with Web UI)
+**Fault Tolerance Test:**
+```bash
+python3 benchmark_fault_tolerance.py
+```
+
+**Extreme Load Test (1M messages):**
+```bash
+python3 benchmark_extreme_load.py
+```
+
+---
+
+#### Option B: Locust Web UI Testing
 
 ```bash
 # Start Locust
@@ -155,14 +193,19 @@ locust -f locustfile.py
 
 ```
 .
-├── docker-compose.yml          # Cassandra cluster configuration
-├── schema.cql                  # Database schema (keyspace + tables)
-├── data_generator.py           # Generate fake users/conversations/messages
-├── data_check.py               # Verify data in database
-├── benchmark.py                # Asyncio-based benchmark script
-├── locustfile.py               # Locust load testing script
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
+├── docker-compose.yml              # Cassandra cluster configuration
+├── schema.cql                      # Database schema (keyspace + tables)
+├── data_generator.py               # Generate fake users/conversations/messages
+├── data_check.py                   # Verify data in database
+│
+├── benchmark.py                    # Basic asyncio benchmark
+├── benchmark_consistency.py        # Consistency level comparison (ONE/QUORUM/ALL)
+├── benchmark_fault_tolerance.py    # Node failure simulation
+├── benchmark_extreme_load.py       # 1 million messages spike test
+├── locustfile.py                   # Locust web UI load testing
+│
+├── requirements.txt                # Python dependencies
+└── README.md                       # This file
 ```
 
 ## 🔧 Configuration
@@ -213,27 +256,190 @@ wait_time = between(1, 3) # User think time (seconds)
 
 ## 📊 Benchmark Scenarios
 
-### 1. Write Messages (INSERT)
+### Basic Benchmarks
+
+#### 1. Write Messages (INSERT)
+**File:** `benchmark.py`  
 **Test:** Insert 10,000 messages concurrently
 - Measures write throughput (ops/s)
 - Tests Cassandra's optimized write path
 - Validates replication across nodes
 
-### 2. Read Messages (SELECT by conversation)
+#### 2. Read Messages (SELECT by conversation)
+**File:** `benchmark.py`  
 **Test:** Retrieve 50 messages from 10,000 conversations
 - Measures read latency (p50, p95, p99)
 - Tests partition key efficiency
 - Validates clustering order (timestamp DESC)
 
-### 3. Read Conversations (SELECT by user)
+#### 3. Read Conversations (SELECT by user)
+**File:** `benchmark.py`  
 **Test:** Load conversation list for 10,000 users
 - Measures denormalized table performance
 - Tests secondary access patterns
 - Validates data locality
 
+## 🚀 Advanced Benchmarks
+
+### 1. Consistency Level Comparison
+
+**File:** `benchmark_consistency.py`
+
+**Purpose:** Compare performance across different consistency levels (ONE, QUORUM, ALL)
+
+**Run:**
+```bash
+python3 benchmark_consistency.py
+```
+
+**What it tests:**
+- ✅ Write throughput with ONE (fastest)
+- ✅ Write throughput with QUORUM (balanced)
+- ✅ Write throughput with ALL (strongest consistency)
+- ✅ Latency distribution for each level
+- ✅ Trade-off between speed and consistency
+
+**Output:**
+- 📊 Comparison charts (throughput, latency p50/p95/p99)
+- 📈 Latency distribution histograms
+- 📉 CDF (Cumulative Distribution Function)
+- 💾 Saved as `consistency_level_comparison.png`
+
+**Expected Results:**
+```
+ONE:    ~2000 ops/s, p95: 30ms    (Fastest, least consistent)
+QUORUM: ~1500 ops/s, p95: 45ms    (Balanced)
+ALL:    ~800 ops/s,  p95: 80ms    (Slowest, most consistent)
+```
+
+---
+
+### 2. Fault Tolerance Test
+
+**File:** `benchmark_fault_tolerance.py`
+
+**Purpose:** Test system behavior when 1 node fails during operation
+
+**⚠️ Warning:** This script will **stop and restart** a Cassandra node!
+
+**Run:**
+```bash
+python3 benchmark_fault_tolerance.py
+```
+
+**What it tests:**
+- ✅ Normal operation (all 3 nodes up)
+- ✅ Automatic failover when cassandra-2 stops
+- ✅ Performance impact during failure
+- ✅ Error rate with QUORUM consistency
+- ✅ Recovery after node restart
+
+**Behavior:**
+1. Starts benchmark with 10,000 operations
+2. After operation 5,000: **stops cassandra-2**
+3. Continues testing with 2/3 nodes
+4. Measures latency increase and failure rate
+5. Restarts cassandra-2 after test
+
+**Output:**
+- � Latency over time (shows spike when node dies)
+- �📈 Moving average latency
+- 📉 Failure rate over time
+- 💾 Saved as `fault_tolerance_benchmark.png`
+
+**Expected Results:**
+```
+Before failure: p95: 40ms, failures: 0%
+After failure:  p95: 120ms, failures: 0.1-1%
+Conclusion: System remains operational with degraded performance
+```
+
+---
+
+### 3. Extreme Load Test (1 Million Messages)
+
+**File:** `benchmark_extreme_load.py`
+
+**Purpose:** Simulate spike traffic (e.g., Tết holiday, major event)
+
+**⚠️ Warning:** 
+- Takes 10-30 minutes depending on hardware
+- Writes 1,000,000 messages to database
+- High CPU/RAM/Disk usage
+
+**Run:**
+```bash
+python3 benchmark_extreme_load.py
+# Confirms with: yes
+```
+
+**What it tests:**
+- ✅ Sustained high throughput (1M messages)
+- ✅ System stability under extreme load
+- ✅ Latency degradation over time
+- ✅ Memory and disk behavior
+- ✅ Real-world spike traffic simulation
+
+**Optimizations used:**
+- Prepared statements
+- Consistency level ONE (max throughput)
+- 200 concurrent threads
+- Batch size 500
+
+**Output:**
+- 📊 8-panel comprehensive dashboard:
+  - Summary metrics
+  - Progress milestones (25%, 50%, 75%, 100%)
+  - Latency distribution
+  - Latency over time
+  - CDF curve
+  - Box plots by percentile
+  - Throughput over time
+  - Metrics comparison
+- 💾 Saved as `extreme_load_benchmark.png`
+
+**Expected Results:**
+```
+Duration: 10-20 minutes
+Throughput: 800-1500 ops/s sustained
+Total: 1,000,000 messages
+Latency p95: 50-100ms
+Failures: <0.01%
+```
+
+**Use case:** Proves Cassandra can handle viral events, holiday traffic spikes
+
+---
+
+### 4. Locust Web UI Testing
+
+**File:** `locustfile.py`
+
+**Purpose:** Interactive load testing with real-time web dashboard
+
+**Run:**
+```bash
+locust -f locustfile.py
+
+# Open browser: http://localhost:8089
+# Configure users and spawn rate
+```
+
+**Features:**
+- 📊 Real-time charts
+- 📈 Response time percentiles
+- 📉 RPS (Requests Per Second)
+- 💾 Download HTML/CSV reports
+- 🔄 Start/stop tests on demand
+
+**Tasks simulated:**
+- Send message (weight: 3)
+- Read messages (weight: 5)  
+- Read conversations (weight: 2)
+
 ## 📈 Expected Results
 
-### Typical Performance (Docker local, 3 nodes)
+### Basic Performance (Docker local, 3 nodes)
 
 | Metric | Write | Read |
 |--------|-------|------|
@@ -241,6 +447,23 @@ wait_time = between(1, 3) # User think time (seconds)
 | **Latency p50** | 20-30ms | 60-80ms |
 | **Latency p95** | 40-60ms | 100-150ms |
 | **Latency p99** | 50-80ms | 150-200ms |
+
+### Extreme Load Performance
+
+| Metric | 1M Messages Test |
+|--------|------------------|
+| **Duration** | 10-20 minutes |
+| **Throughput** | 800-1,500 ops/s |
+| **Latency p95** | 50-100ms |
+| **Failure Rate** | <0.01% |
+
+### Consistency Level Comparison
+
+| Level | Throughput | p95 Latency | Consistency |
+|-------|-----------|-------------|-------------|
+| **ONE** | ~2,000 ops/s | 30ms | Weakest |
+| **QUORUM** | ~1,500 ops/s | 45ms | Balanced ✅ |
+| **ALL** | ~800 ops/s | 80ms | Strongest |
 
 ### Production Performance (Dedicated hardware)
 
